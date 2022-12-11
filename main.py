@@ -1,117 +1,50 @@
-import discord
-from discord.ext import commands
-from discord import FFmpegPCMAudio
-from discord.utils import get
+import asyncio
+import nextcord
+from nextcord import Interaction
+from nextcord.ext import commands
+from nextcord import FFmpegPCMAudio
+import youtube_dl
+import os
+
 from apikeys import *
-from songlist import *
 
-intents = discord.Intents.all()
+intents = nextcord.Intents.all()
 intents.members = True
-
-music = ListSong().mysongs
-
-queues = {}
-
-def check_queue(ctx, id):
-  if queues[id] != []:
-    voice = cyx.guild.voice_client
-    source = queues[id].pop(0)
-    player = voice.play(source)
-
-"client = commands.Bot(command_prefix='sh!')"
 
 client = commands.Bot(command_prefix = 'sh!', intents=intents)
 
-"""client = discord.Client()"""
-
 @client.event
 async def on_ready():
+  #await client.change_presence(status=discord.Status.idle)
+  await client.change_presence(activity=nextcord.Game('Minecraft'))
   print('We have logged in as {0.user}'.format(client))
 
-@client.command()
-async def hello(ctx):
-  await ctx.send("Hello there!")
+@client.slash_command(name = "help", description = "description of all available commands", guild_ids=[1010962644934590486])
+async def help(interaction: Interaction):
+  await interaction.response.send_message("This is help")
 
-@client.command()
-async def info(ctx):
-  await ctx.send("Im Shino! I was created by <@391300218269990922>")
+initial_extensions = []
 
-@client.command()
-async def menu(ctx):
-  await ctx.send("<@391300218269990922> is still busy on creating my help menu")
+async def load_extensions():
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            # cut off the .py from the file name
+             client.load_extension(f"cogs.{filename[:-3]}")
 
-@client.command()
-async def users(ctx):
-  await ctx.send(discord.User)
 
-@client.command(pass_context = True)
-async def joinvc(ctx):
-  if (ctx.author.voice):
-    channel = ctx.message.author.voice.channel
-    voice = await channel.connect()
-    source = FFmpegPCMAudio(ListSong().mysongs[0]) #'Audio Files/Local Songs/Hacking to the Gate.mp3'
-    player = voice.play(source)
-  else:
-    await ctx.send("You are not in a voice channel, you must be in a voice channel to run this command")
 
-@client.command(pass_context = True)
-async def leavevc(ctx):
-  if (ctx.voice_client):
-    await ctx.guild.voice_client.disconnect()
-    await ctx.send("I left the voice channel")
-  else:
-    await ctx.send("I am not in a voice channel")
+"""print(initial_extensions)
 
-@client.command(pass_context = True)
-async def pause(ctx):
-  voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-  if voice.is_playing():
-    voice.pause()
-  else:
-    await ctx.send("There isn't anything playing")
+if __name__ == '__main__':
+  for extension in initial_extensions:
+    client.load_extension(extension)
 
-@client.command(pass_context = True)
-async def resume(ctx):
-  voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-  if voice.is_paused():
-    voice.resume()
-  else:
-    await ctx.send("Something is already playing")
+print(extension)
 
-@client.command(pass_context = True)
-async def stop(ctx):
-  voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-  voice.stop()
+client.run(botToken)"""
 
-@client.command(pass_context = True)
-async def play(ctx, arg):
-  voice = ctx.guild.voice_client
-  source = FFmpegPCMAudio('Audio Files/Local Songs/' + arg + '.mp3')
-  player = voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
+async def main():
+  await load_extensions()
+  await client.start(botToken)
 
-#for testing purposes
-@client.command(pass_context = True)
-async def testplay(ctx, arg):
-  voice = ctx.guild.voice_client
-  if arg != "":
-    arg2 = music.index(f'{arg}')
-  else:
-    pass
-  source = FFmpegPCMAudio(arg2)
-  player = voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
-
-@client.command(pass_context = True)
-async def queue(ctx, arg):
-  voice = ctx.guild.voice_client
-  source = FFmpegPCMAudio('Audio Files/Local Songs/' + arg + '.mp3')
-
-  guild_id = ctx.message.guild.id
-
-  if guild_id in queues:
-    queues[guild_id].append(source)
-  else:
-    queues[guild_id] = [source]
-
-  await ctx.send("Added to queue")
-
-client.run(botToken)
+asyncio.run(main())
